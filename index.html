@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MotionForge — Skeleton & Animation Kit</title>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/exporters/GLTFExporter.js"></script>
+<style>
+:root {
+  --pri:#d946ef; --sec:#8b5cf6; --suc:#22c55e; --bg:#0f111a; --card:#1a1c2c; --txt:#f1f5f9;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,sans-serif;}
+body{background:var(--bg);color:var(--txt);min-height:100vh;padding-bottom:20px;}
+header{background:linear-gradient(135deg,var(--pri),var(--sec));padding:14px 20px;text-align:center;font-size:19px;font-weight:700;}
+#canvas-container{width:100%;height:340px;background:#151726;position:relative;}
+canvas{width:100%;height:100%;display:block;}
+.status-bar{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.75);padding:6px 10px;border-radius:6px;font-size:12px;z-index:100;max-width:70%;}
+.container{padding:12px;max-width:600px;margin:0 auto;}
+.card{background:var(--card);border-radius:12px;padding:14px;margin-bottom:14px;}
+h2{font-size:15px;margin-bottom:10px;color:#e0e7ff;display:flex;align-items:center;gap:6px;}
+.btn{border:none;border-radius:8px;padding:10px 12px;font-size:14px;font-weight:600;cursor:pointer;transition:.2s all;}
+.btn-primary{background:linear-gradient(90deg,var(--pri),var(--sec));color:white;}
+.btn-success{background:var(--suc);color:#052e16;}
+.btn-cyan{background:#06b6d4;color:#083344;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;}
+button:disabled{opacity:.5;cursor:not-allowed;}
+input[type="file"]{display:none;}
+.file-label{display:block;border:2px dashed var(--pri);border-radius:8px;padding:16px;text-align:center;cursor:pointer;margin:8px 0;}
+.file-label:hover{background:rgba(217,70,239,.08);}
+details{background:#24273d;border-radius:8px;margin-bottom:8px;overflow:hidden;}
+summary{padding:10px 14px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;}
+summary::after{content:"+";font-weight:bold;font-size:18px;}
+details[open] summary::after{content:"−";}
+.details-content{padding:0 14px 12px;}
+.chip{display:inline-block;background:#333754;border-radius:20px;padding:6px 12px;margin:4px;font-size:13px;cursor:pointer;transition:.2s;}
+.chip:hover{background:var(--sec);}
+.chip.active{background:var(--pri);box-shadow:0 0 0 1px white;}
+textarea,input[type="text"]{width:100%;background:#151726;border:1px solid #44476a;border-radius:6px;padding:10px;color:white;font-size:14px;}
+textarea{height:80px;resize:none;}
+.checkbox-row{display:flex;align-items:center;gap:8px;margin:8px 0;font-size:14px;}
+small{color:#9ca3af;display:block;margin-top:4px;}
+</style>
+</head>
+<body>
+
+<header>✨ MotionForge — Skeleton & Animation Kit</header>
+
+<div id="canvas-container">
+  <canvas id="three-canvas"></canvas>
+  <div class="status-bar" id="status">Ready — Upload your .glb model</div>
+</div>
+
+<div class="container">
+
+  <!-- APPLY ANIMATIONS -->
+  <div class="card">
+    <button class="btn btn-success" style="width:100%;font-size:16px;padding:12px;" id="applyAnimBtn">🟢 APPLY ANIMATIONS TO MY MODEL</button>
+    <small style="margin-top:6px;">Upload your model first, then click this button to connect animations</small>
+  </div>
+
+  <!-- QUICK ANIMATIONS -->
+  <div class="card">
+    <h2>🏃 Quick Animations</h2>
+    <div class="btn-row">
+      <button class="btn chip active" data-anim="idle">Idle</button>
+      <button class="btn chip" data-anim="walk">Walk</button>
+      <button class="btn chip" data-anim="run">Run</button>
+      <button class="btn chip" data-anim="jump">Jump</button>
+    </div>
+  </div>
+
+  <!-- UPLOAD & AUTO-RIG -->
+  <div class="card">
+    <h2>📁 Model & Auto-Rig</h2>
+    <label class="file-label" id="file-label">
+      <strong>📂 Choose your .glb file</strong>
+      <input type="file" id="fileInput" accept=".glb">
+    </label>
+    <div class="checkbox-row">
+      <input type="checkbox" id="showSkeleton" checked>
+      <label for="showSkeleton">Show Skeleton Overlay</label>
+    </div>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-cyan" id="saveJson">💾 Save Skeleton JSON</button>
+      <button class="btn btn-primary" id="saveGlb">📦 Save Rigged .glb</button>
+    </div>
+    <small style="margin-top:8px;">💡 Saved files go to your Downloads folder</small>
+  </div>
+
+  <!-- AI SKILL KIT -->
+  <details>
+    <summary><strong>🤖 AI Skill Kit Generator</strong></summary>
+    <div class="details-content">
+      <textarea id="heroPrompt" placeholder="Describe your hero — e.g. 'Fire mage with dash, stun and heal'"></textarea>
+      <button class="btn btn-primary" style="width:100%;margin-top:8px;" id="genKit">✨ AI: Generate Skill Kit</button>
+      <div id="skillOutput" style="margin-top:10px;"></div>
+    </div>
+  </details>
+
+  <!-- ANIMATION LIST -->
+  <details open>
+    <summary><strong>🎬 All Animations</strong></summary>
+    <div class="details-content" id="animList">
+      <span class="chip" data-anim="idle">Idle</span>
+      <span class="chip" data-anim="walk">Walk</span>
+      <span class="chip" data-anim="run">Run</span>
+      <span class="chip" data-anim="jump">Jump</span>
+      <span class="chip" data-anim="attack">Basic Attack</span>
+      <span class="chip" data-anim="attack2">Strong Attack</span>
+      <span class="chip" data-anim="dash">Dash</span>
+      <span class="chip" data-anim="knockup">Knockup / Airborne</span>
+      <span class="chip" data-anim="spinattack">Whirlwind Spin</span>
+      <span class="chip" data-anim="hurt">Hurt / Damage</span>
+      <span class="chip" data-anim="death">Death</span>
+    </div>
+  </details>
+
+</div>
+
+<script>
+// ========== GLOBALS ==========
+let scene, camera, renderer, clock;
+let defaultModel, userModel=null, userSkeleton=null;
+let mixer=null, currentAction=null;
+let animations={}, userModelLoaded=false, animationsApplied=false;
+let skeletonHelper=null;
+const statusEl=document.getElementById('status');
+
+function setStatus(txt){ statusEl.textContent=txt; console.log('[MotionForge]',txt); }
+
+// ========== THREE.JS SETUP ==========
+function initScene(){
+  const canvas=document.getElementById('three-canvas');
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x1a1c2c);
+  camera=new THREE.PerspectiveCamera(50,canvas.clientWidth/canvas.clientHeight,0.1,100);
+  camera.position.set(0,1.6,3.5);
+  camera.lookAt(0,1,0);
+  renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+  renderer.setSize(canvas.clientWidth,canvas.clientHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  const light1=new THREE.DirectionalLight(0xffffff,1.2);
+  light1.position.set(3,4,3);
+  scene.add(light1);
+  scene.add(new THREE.AmbientLight(0xffffff,0.6));
+  const grid=new THREE.GridHelper(6,12,0x444466,0x222244);
+  grid.position.y=-0.01;
+  scene.add(grid);
+  clock=new THREE.Clock();
+  loadDefaultModel();
+  animate();
+}
+
+// ========== SIMPLE DEFAULT MODEL ==========
+function createDefaultFigure(){
+  const g=new THREE.Group();
+  const mat=new THREE.MeshStandardMaterial({color:0x7c3aed});
+  const body=new THREE.Mesh(new THREE.CapsuleGeometry(0.3,0.7,4,8),mat);
+  body.position.y=1.05;g.add(body);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.22),mat);
+  head.position.y=1.85;g.add(head);
+  const armMat=new THREE.MeshStandardMaterial({color:0xa78bfa});
+  const lArm=new THREE.Mesh(new THREE.CapsuleGeometry(0.08,0.35),armMat);
+  lArm.position.set(-0.55,1.25,0);g.add(lArm);
+  const rArm=new THREE.Mesh(new THREE.CapsuleGeometry(0.08,0.35),armMat);
+  rArm.position.set(0.55,1.25,0);g.add(rArm);
+  const legMat=new THREE.MeshStandardMaterial({color:0x5b21b6});
+  const lLeg=new THREE.Mesh(new THREE.CapsuleGeometry(0.1,0.45),legMat);
+  lLeg.position.set(-0.18,0.28,0);g.add(lLeg);
+  const rLeg=new THREE.Mesh(new THREE.CapsuleGeometry(0.1,0.45),legMat);
+  rLeg.position.set(0.18,0.28,0);g.add(rLeg);
+  g.name='DefaultFigure';
+  return g;
+}
+
+function loadDefaultModel(){
+  defaultModel=createDefaultFigure();
+  scene.add(defaultModel);
+  setStatus('✅ Ready — upload your .glb model');
+  buildAnimations();
+}
+
+// ========== ANIMATION DATA ==========
+function buildAnimations(){
+  animations={
+    idle: createClip('idle', 2, [
+      {n:'Hips',t:[0,0,0],r:[0,0,0]},
+      {n:'Spine',t:[0,0,0],r:[0,0,0]},
+      {n:'Head',t:[0,1.85,0],r:[0,0,0]},
+      {n:'LeftArm',t:[-0.55,1.25,0],r:[0,Math.sin,0]},
+      {n:'RightArm',t:[0.55,1.25,0],r:[0,-Math.sin,0]},
+    ]),
+    walk: createClip('walk', 1.0, [
+      {n:'Hips',t:[0,Math.abs(Math.sin)*0.06,0],r:[0,0,0]},
+      {n:'LeftLeg',t:[-0.18,0.28,0],r:[Math.sin,0,0]},
+      {n:'RightLeg',t:[0.18,0.28,0],r:[-Math.sin,0,0]},
+      {n:'LeftArm',t:[-0.55,1.25,0],r:[-Math.sin*0.4,0,0]},
+      {n:'RightArm',t:[0.55,1.25,0],r:[Math.sin*0.4,0,0]},
+    ]),
+    run: createClip('run', 0.6, [
+      {n:'Hips',t:[0,0.1+Math.abs(Math.sin)*0.1,0],r:[0,0,0]},
+      {n:'LeftLeg',t:[-0.18,0.28,0],r:[Math.sin*1.5,0,0]},
+      {n:'RightLeg',t:[0.18,0.28,0],r:[-Math.sin*1.5,0,0]},
+      {n:'LeftArm',t:[-0.55,1.25,0],r:[-Math.sin*0.8,0,0]},
+      {n:'RightArm',t:[0.55,1.25,0],r:[Math.sin*0.8,0,0]},
+    ]),
+    jump: createClip('jump', 1.0, [
+      {n:'Hips',t:[0,Math.max(0,Math.sin*3.5),0],r:[0,0,0]},
+      {n:'LeftLeg',t:[-0.18,0.28,0],r:[0.6,0,0]},
+      {n:'RightLeg',t:[0.18,0.28,0],r:[0.6,0,0]},
+      {n:'LeftArm',t:[-0.55,1.25,0],r:[-1.0,0,0]},
+      {n:'RightArm',t:[0.55,1.25,0],r:[-1.0,0,0]},
+    ]),
+    attack: createClip('attack', 0.6, [
+      {n:'RightArm',t:[0.55,1.25,0],r:[0,-1.6,0]},
+      {n:'Spine',t:[0,1.05,0],r:[0,0,0.3]},
+    ]),
+    attack2: createClip('attack2', 0.9, [
+      {n:'Hips',t:[0,0,0],r:[0.2,0,0]},
+      {n:'Spine',t:[0,1.05,0],r:[0,0,-0.4]},
+      {n:'RightArm',t:[0.55,1.25,0],r:[0,-2.2,0]},
+      {n:'LeftArm',t:[-0.55,1.25,0],r:[0,-1.0,0]},
+    ]),
+    dash: createClip('dash', 0.35, [
+      {n:'Spine',t:[0,1.05,0],r:[0,0,-0.5]},
+      {n:'Head',t:[0,1.85,0],r:[0,0,0.4]},
+      {n:'LeftArm',t:[-0.55,1.25,0],r:[0,0,1.2]},
+      {n:'RightArm',t:[0.55,1.25,0],r:[0,0,-1.2]},
+    ]),
+    knockup: createClip('knockup', 1.4, [
+      {n:'Hips',t:[0,Math.max(0,Math.sin*2.8),0],r:[Math.sin*0.6,Math.PI*Math.sin,0]},
+      {n:'LeftArm',t:[-0.55,1.25,0],r:[-0.8,Math.sin*0.5,0]},
+      {n:'RightArm',t:[0.55,1.25,0],r:[-0.8,-Math.sin*0.5,0]},
+    ]),
+    spinattack: createClip('spinattack', 0.8, [
+      {n:'Spine',t:[0,1.05,0],r:[0,Math.PI*2*Math.fract,0]},
+      {n:'RightArm',t:[0.55,1.25,0],r:[0,-1.8,Math.PI*0.3]},
+      {n:'LeftArm',t:[-0.55,1.25,0],r:[0,-1.8,-Math.PI*0.3]},
+    ]),
+    hurt: createClip('hurt', 0.35, [
+      {n:'Hips',t:[0,0,0],r:[0.4,0,0]},
+      {n:'Head',t:[0,1.85,0],r:[-0.6,0,0]},
+      {n:'Spine',t:[0,1.05,0],r:[0.3,0,0]},
+    ]),
+    death: createClip('death', 1.6, [
+      {n:'Hips',t:[0,Math.max(-1.0,Math.sin*(-1.05)),0],r:[1.57,0,0]},
+      {n:'Head',t:[0,1.85,0],r:[1.2,0,0]},
+      {n:'LeftArm',t:[-0.55,1.25,0],r:[1.6,0,0.5]},
+      {n:'RightArm',t:[0.55,1.25,0],r:[1.6,0,-0.5]},
+      {n:'LeftLeg',t:[-0.18,0.28,0],r:[0.5,0,0]},
+      {n:'RightLeg',t:[0.18,0.28,0],r:[0.5,0,0]},
+    ]),
+  };
+}
+
+function createClip(name,duration,bones){
+  const tracks=[];
+  const times=new Float32Array([0,duration/2,duration]);
+  bones.forEach(b=>{
+    const x=typeof b.t[0]==='function'?[0,b.t[0](0),b.t[0](1)]:[b.t[0],b.t[0],b.t[0]];
+    const y=typeof b.t[1]==='function'?[0,b.t[1](0),b.t[1](1)]:[b.t[1],b.t[1],b.t[1]];
+    const z=typeof b.t[2]==='function'?[0,b.t[2](0),b.t[2](1)]:[b.t[2],b.t[2],b.t[2]];
+    const px=new Float32Array([x[0],y[0],z[0],x[1],y[1],z[1],x[2],y[2],z[2]]);
+    tracks.push(new THREE.VectorKeyframeTrack(`${b.n}.position`,times,px));
+    const rx=typeof b.r[0]==='function'?[0,b.r[0](0),b.r[0](1)]:[b.r[0],b.r[0],b.r[0]];
+    const ry=typeof b.r[1]==='function'?[0,b.r[1](0),b.r[1](1)]:[b.r[1],b.r[1],b.r[1]];
+    const rz=typeof b.r[2]==='function'?[0,b.r[2](0),b.r[2](1)]:[b.r[2],b.r[2],b.r[2]];
+    const q1=new THREE.Quaternion().setFromEuler(new THREE.Euler(rx[0],ry[0],rz[0])).toArray();
+    const q2=new THREE.Quaternion().setFromEuler(new THREE.Euler(rx[1],ry[1],rz[1])).toArray();
+    const q3=new THREE.Quaternion().setFromEuler(new THREE.Euler(rx[2],ry[2],rz[2])).toArray();
+    const rot=new Float32Array([q1[0],q1[1],q1[2],q1[3], q2[0],q2[1],q2[2],q2[3], q3[0],q3[1],q3[2],q3[3]]);
+    tracks.push(new THREE.QuaternionKeyframeTrack(`${b.n}.quaternion`,times,rot));
+  });
+  return new THREE.AnimationClip(name,duration,tracks);
+}
+
+// ========== PLAY ANIMATION ==========
+function playAnimation(name){
+  if(!mixer){
+    setStatus('⚠️ No model loaded yet');
+    return;
+  }
+  if(currentAction) currentAction.fadeOut(0.15);
+  const clip=animations[name];
+  if(!clip){
+    setStatus(`⚠️ Animation not found: ${name}`);
+    return;
+  }
+  const action=mixer.clipAction(clip);
+  action.reset().setLoop(THREE.LoopRepeat).fadeIn(0.15).play();
+  currentAction=action;
+  document.querySelectorAll('[data-anim]').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll(`[data-anim="${name}"]`).forEach(el=>el.classList.add('active'));
+  setStatus(`▶ Playing: ${name}`);
+}
+
+// ========== UPLOAD & LOAD USER MODEL ==========
+document.getElementById('fileInput').addEventListener('change',async e=>{
+  const file=e.target.files[0];
+  if(!file)return;
+  if(!file.name.toLowerCase().endsWith('.glb')){
+    setStatus('❌ Please select a .glb file');
+    return;
+  }
+  setStatus(`📂 Loading: ${file.name}...`);
+  try{
+    const arrayBuf=await file.arrayBuffer();
+    // Validate magic
+    const view=new DataView(arrayBuf);
+    if(view.getUint32(0,true)!==0x46546C67){
+      setStatus('❌ Not a valid GLB file');
+      return;
+    }
+    // Remove old user model
+    if(userModel){
+      scene.remove(userModel);
+      userModel=null;
+    }
+    // Hide default model
+    if(defaultModel) defaultModel.visible=false;
+
+    const loader=new THREE.GLTFLoader();
+    loader.parse(arrayBuf,'',gltf=>{
+      userModel=gltf.scene;
+      scene.add(userModel);
+      userModelLoaded=true;
+
+      // Center & scale
+      const box=new THREE.Box3().setFromObject(userModel);
+      const center=box.getCenter(new THREE.Vector3());
+      const size=box.getSize(new THREE.Vector3());
+      const scale=2.0/Math.max(size.x,size.y,size.z);
+      userModel.position.sub(center.multiplyScalar(scale));
+      userModel.position.y=0;
+      userModel.scale.setScalar(scale);
+
+      // Auto-rig if no skeleton
+      let hasSkeleton=false;
+      userModel.traverse(child=>{
+        if(child.isSkinnedMesh&&child.skeleton) hasSkeleton=true;
+      });
+      if(!hasSkeleton){
+        setStatus('🔧 Auto-rigging skeleton...');
+        createAutoRig(userModel);
+      }else{
+        userModel.traverse(child=>{
+          if(child.isSkinnedMesh&&child.skeleton){
+            userSkeleton=child.skeleton;
+          }
+        });
+        setStatus('✅ Model loaded — skeleton found');
+      }
+
+      mixer=new THREE.AnimationMixer(userModel);
+      animationsApplied=false;
+      setStatus(`✅ ${file.name} loaded — click "APPLY ANIMATIONS" button`);
+      updateSkeletonHelper();
+    },err=>{
+      setStatus(`❌ Load error: ${err.message}`);
+      console.error(err);
+    });
+  }catch(err){
+    setStatus(`❌ File error: ${err.message}`);
+    console.error(err);
+  }
+});
+
+// ========== AUTO-RIG SYSTEM ==========
+function createAutoRig(model){
+  const bones={};
+  const hipBone=new THREE.Bone(); hipBone.name='Hips';
+  hipBone.position.y=0.9; bones.Hips=hipBone;
+
+  const spine=new THREE.Bone(); spine.name='Spine';
+  spine.position.y=0.45; hipBone.add(spine); bones.Spine=spine;
+
+  const head=new THREE.Bone(); head.name='Head';
+  head.position.y=0.55; spine.add(head); bones.Head=head;
+
+  const lArm=new THREE.Bone(); lArm.name='LeftArm';
+  lArm.position.set(-0.5,0.25,0); spine.add(lArm); bones.LeftArm=lArm;
+  const lFore=new THREE.Bone(); lFore.name='LeftForeArm';
+  lFore.position.y=-0.3; lArm.add(lFore);
+
+  const rArm=new THREE.Bone(); rArm.name='RightArm';
+  rArm.position.set(0.5,0.25,0); spine.add(rArm); bones.RightArm=rArm;
+  const rFore=new THREE.Bone(); rFore.name='RightForeArm';
+  rFore.position.y=-0.3; rArm.add(rFore);
+
+  const lLeg=new THREE.Bone(); lLeg.name='LeftLeg';
+  lLeg.position.set(-0.18,-0.9,0); hipBone.add(lLeg); bones.LeftLeg=lLeg;
+  const lShin=new THREE.Bone(); lShin.name='LeftShin';
+  lShin.position.y=-0.45; lLeg.add(lShin);
+
+  const rLeg=new THREE.Bone(); rLeg.name='RightLeg';
+  rLeg.position.set(0.18,-0.9,0); hipBone.add(rLeg); bones.RightLeg=rLeg;
+  const rShin=new THREE.Bone(); rShin.name='RightShin';
+  rShin.position.y=-0.45; rLeg.add(rShin);
+
+  const skeleton=new THREE.Skeleton([hipBone,spine,head,lArm,lFore,rArm,rFore,lLeg,lShin,rLeg,rShin]);
+  userSkeleton=skeleton;
+
+  model.add(hipBone);
+  model.traverse(child=>{
+    if(child.isMesh&&!child.isSkinnedMesh){
+      const geom=child.geometry.clone();
+      const pos=geom.attributes.position;
+      const skinIndices=new Float32Array(pos.count*4);
+      const skinWeights=new Float32Array(pos.count*4);
+      const bonePos=new THREE.Vector3();
+      const v=new THREE.Vector3();
+      for(let i=0;i<pos.count;i++){
+        v.fromBufferAttribute(pos,i);
+        child.localToWorld(v);
+        model.worldToLocal(v);
+        let bd=1e8,bi=0,bw=1;
+        Object.entries(bones).forEach(([n,b],idx)=>{
+          b.getWorldPosition(bonePos);
+          const d=v.distanceTo(bonePos);
+          if(d<bd){bd=d;bi=idx;bw=1-Math.min(1,bd/1.5);}
+        });
+        skinIndices[i*4+0]=bi;
+        skinWeights[i*4+0]=bw;
+        skinWeights[i*4+1]=1-bw;
+      }
+      geom.setAttribute('skinIndex',new THREE.BufferAttribute(skinIndices,4));
+      geom.setAttribute('skinWeight',new THREE.BufferAttribute(skinWeights,4));
+      const sm=new THREE.SkinnedMesh(geom,child.material);
+      sm.bind(skeleton);
+      child.parent.add(sm);
+      child.visible=false;
+    }
+  });
+  setStatus('✅ Auto-Rig complete!');
+}
+
+// ========== APPLY ANIMATIONS ==========
+document.getElementById('applyAnimBtn').addEventListener('click',()=>{
+  if(!userModelLoaded){
+    setStatus('⚠️ Upload a model first!');
+    return;
+  }
+  mixer=new THREE.AnimationMixer(userModel);
+  Object.values(animations).forEach(clip=>{
+    mixer.clipAction(clip);
+  });
+  animationsApplied=true;
+  playAnimation('idle');
+  setStatus('✅ Animations connected! Now click Walk/Run/Skills!');
+});
+
+// ========== SKELETON HELPER ==========
+function updateSkeletonHelper(){
+  if(skeletonHelper) scene.remove(skeletonHelper);
+  const show=document.getElementById('showSkeleton').checked;
+  if(!show||!userSkeleton) return;
+  skeletonHelper=new THREE.SkeletonHelper(userSkeleton.bones[0]?.parent||userModel);
+  skeletonHelper.material.linewidth=3;
+  skeletonHelper.material.depthTest=false;
+  skeletonHelper.renderOrder=10;
+  scene.add(skeletonHelper);
+}
+document.getElementById('showSkeleton').addEventListener('change',updateSkeletonHelper);
+
+// ========== SAVE FUNCTIONS ==========
+document.getElementById('saveJson').addEventListener('click',()=>{
+  if(!userSkeleton){
+    setStatus('⚠️ No skeleton to save — upload a model first');
+    return;
+  }
+  const data={
+    bones: userSkeleton.bones.map(b=>({
+      name:b.name,
+      position:{x:b.position.x,y:b.position.y,z:b.position.z},
+      parent:b.parent?b.parent.name:null
+    })),
+    boneNames:userSkeleton.boneNames
+  };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  downloadFile(blob,`skeleton_${new Date().toISOString().slice(0,10)}.json`);
+  setStatus('✅ Skeleton JSON saved to Downloads');
+});
+
+document.getElementById('saveGlb').addEventListener('click',async()=>{
+  if(!userModel){
+    setStatus('⚠️ No model to save — upload first');
+    return;
+  }
+  setStatus('📦 Exporting rigged model...');
+  try{
+    const exporter=new THREE.GLTFExporter();
+    const opts={trs:false,onlyVisible:false,maxTextureSize:2048};
+    exporter.parse(userModel,result=>{
+      if(result instanceof ArrayBuffer){
+        const blob=new Blob([result],{type:'application/octet-stream'});
+        downloadFile(blob,`rigged_model_${new Date().toISOString().slice(0,10)}.glb`);
+        setStatus('✅ Rigged .glb saved to Downloads folder! ✅');
+      }
+    },err=>{
+      setStatus(`❌ Export failed: ${err}`);
+      console.error(err);
+    },opts);
+  }catch(err){
+    setStatus(`❌ Export error: ${err.message}`);
+    console.error(err);
+  }
+});
+
+function downloadFile(blob,filename){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=filename;
+  a.style.display='none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },150);
+}
+
+// ========== AI SKILL GENERATOR ==========
+document.getElementById('genKit').addEventListener('click',()=>{
+  const prompt=document.getElementById('heroPrompt').value.trim();
+  if(!prompt){
+    alert('Type your hero concept first! e.g. "Fire mage with dash and stun"');
+    return;
+  }
+  const kit=generateSkillKit(prompt);
+  document.getElementById('skillOutput').innerHTML=kit;
+});
+
+function generateSkillKit(prompt){
+  const p=prompt.toLowerCase();
+  let role='Fighter',element='Neutral';
+  if(/mage|magic|wizard|spell|fire|ice|lightning/.test(p)) role='Mage';
+  if(/assassin|ninja|stealth|kill|execute/.test(p)) role='Assassin';
+  if(/tank|shield|armor|guard|protect/.test(p)) role='Tank';
+  if(/marksman|ranged|bow|gun|arrow/.test(p)) role='Marksman';
+  if(/support|heal|shield|buff|ally/.test(p)) role='Support';
+  if(/fire|flame|burn|blaze/.test(p)) element='Fire';
+  else if(/ice|frost|freeze|snow/.test(p)) element='Ice';
+  else if(/lightning|thunder|shock/.test(p)) element='Lightning';
+  else if(/shadow|dark|void/.test(p)) element='Shadow';
+  else if(/holy|light|bless/.test(p)) element='Holy';
+
+  return `
+    <div style="background:#24273d;padding:10px;border-radius:8px;margin-top:8px;">
+      <h3 style="font-size:14px;margin-bottom:8px;">🎮 ${element} ${role}</h3>
+      <div style="font-size:13px;line-height:1.6;">
+        <strong>Basic Attack:</strong> ${element} Strike — simple swing/projectile<br>
+        <strong>Skill 1:</strong> ${element} Blast — damage + impact <button class="btn chip" data-anim="attack">▶ Preview</button><br>
+        <strong>Skill 2:</strong> ${role==='Assassin'||role==='Mage'?'Flash Dash':'Knockback Shot'} — mobility/CC <button class="btn chip" data-anim="dash">▶ Preview</button><br>
+        <strong>Skill 3:</strong> ${role==='Tank'?'Iron Guard':'Quick Strike'} — defense/utility <button class="btn chip" data-anim="attack2">▶ Preview</button><br>
+        <strong>Ultimate:</strong> ${element} Cataclysm — big damage + area effect <button class="btn chip" data-anim="spinattack">▶ Preview</button><br>
+        <strong>Passive:</strong> ${element} Aura — bonus ${element.toLowerCase()} damage on hit
+      </div>
+    </div>
+  `;
+}
+
+// ========== GLOBAL ANIMATION CLICKS ==========
+document.addEventListener('click',e=>{
+  if(e.target.dataset.anim){
+    playAnimation(e.target.dataset.anim);
+  }
+});
+
+// ========== LOOP & RESIZE ==========
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(0.05,clock.getDelta());
+  if(mixer) mixer.update(dt);
+  if(skeletonHelper&&document.getElementById('showSkeleton').checked){
+    skeletonHelper.update();
+  }
+}
+
+window.addEventListener('resize',()=>{
+  const container=document.getElementById('canvas-container');
+  const canvas=document.getElementById('three-canvas');
+  renderer.setSize(container.clientWidth,container.clientHeight);
+  camera.aspect=container.clientWidth/container.clientHeight;
+  camera.updateProjectionMatrix();
+});
+
+initScene();
+</script>
+
+</body>
+</html>
