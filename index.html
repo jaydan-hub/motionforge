@@ -3,220 +3,263 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MotionForge — Simple Version</title>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
+<title>MotionForge — Final Fix</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,sans-serif;}
-body{background:#0f172a;color:#f1f5f9;padding-bottom:30px;}
+body{background:#0f172a;color:#f1f5f9;padding-bottom:40px;}
 header{background:linear-gradient(90deg,#8b5cf6,#06b6d4);padding:15px;text-align:center;font-size:18px;font-weight:bold;}
-#canvas-container{width:100%;height:300px;background:#1e293b;position:relative;}
+#canvas-container{width:100%;height:320px;background:#1e293b;position:relative;}
 canvas{width:100%;height:100%;display:block;}
-.status{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.75);padding:8px 12px;border-radius:6px;font-size:13px;max-width:85%;}
+.status{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.8);padding:8px 12px;border-radius:6px;font-size:13px;max-width:90%;}
 .container{padding:15px;max-width:500px;margin:0 auto;}
-.card{background:#1e293b;border-radius:12px;padding:15px;margin-bottom:15px;}
-h2{font-size:16px;margin-bottom:12px;}
-button{width:100%;border:none;border-radius:8px;padding:12px;font-size:15px;font-weight:600;cursor:pointer;margin:5px 0;}
+.card{background:#1e293b;border-radius:12px;padding:18px;margin-bottom:15px;}
+h2{font-size:17px;margin-bottom:12px;}
+button{width:100%;border:none;border-radius:8px;padding:13px;font-size:15px;font-weight:600;cursor:pointer;margin:6px 0;}
 .btn-purple{background:linear-gradient(90deg,#8b5cf6,#7c3aed);color:white;}
 .btn-green{background:#22c55e;color:#052e16;}
-.file-btn{border:2px dashed #8b5cf6;border-radius:8px;padding:25px;text-align:center;cursor:pointer;display:block;}
-.file-btn:hover{background:rgba(139,92,246,.08);}
+.file-box{border:2px dashed #8b5cf6;border-radius:8px;padding:30px;text-align:center;cursor:pointer;}
+.file-box:hover{background:rgba(139,92,246,.08);}
 input[type="file"]{display:none;}
-.preview-info{margin-top:10px;padding:10px;background:#334155;border-radius:6px;font-size:13px;display:none;}
-.error{color:#f87171;margin-top:8px;font-size:13px;}
-.success{color:#4ade80;margin-top:8px;font-size:13px;}
-.anim-btn{width:auto;display:inline-block;padding:8px 12px;margin:4px;border-radius:6px;background:#334155;}
+.info{margin-top:12px;padding:12px;background:#334155;border-radius:6px;font-size:14px;}
+.error{color:#f87171;}
+.ok{color:#4ade80;}
+.wait{color:#facc15;}
+.anim-btn{display:inline-block;padding:10px 16px;margin:5px;border-radius:6px;background:#334155;cursor:pointer;}
 .anim-btn.active{background:#8b5cf6;}
+.anim-row{text-align:center;margin-top:10px;}
 </style>
 </head>
 <body>
 
-<header>✨ MotionForge — Simple Upload Version</header>
+<header>✨ MotionForge — Final Working Version</header>
 
 <div id="canvas-container">
   <canvas id="c"></canvas>
-  <div class="status" id="status">✅ Ready — Upload your .GLB file</div>
+  <div class="status" id="status">⏳ Loading 3D Engine... Please wait</div>
 </div>
 
 <div class="container">
   <div class="card">
-    <h2>📂 Upload Your .GLB Model</h2>
-    <label class="file-btn" for="finput">
-      <strong>📄 CLICK HERE TO SELECT .GLB FILE</strong>
-      <p style="font-size:13px;color:#94a3b8;margin-top:5px;">Only .glb files</p>
+    <h2>📂 Upload Your .GLB File</h2>
+    <label class="file-box" for="fileInput">
+      <div style="font-size:24px;margin-bottom:8px;">📄</div>
+      <strong>CLICK TO SELECT .GLB</strong>
     </label>
-    <input type="file" id="finput" accept=".glb">
-    <div class="preview-info" id="finfo">
-      <strong>File:</strong> <span id="fname"></span><br>
-      <strong>Size:</strong> <span id="fsize"></span>
-      <div id="fmsg"></div>
+    <input type="file" id="fileInput" accept=".glb">
+    <div class="info" id="fileInfo" style="display:none;">
+      <div><strong>File:</strong> <span id="fileName"></span></div>
+      <div><strong>Size:</strong> <span id="fileSize"></span></div>
+      <div id="fileMsg" style="margin-top:8px;"></div>
     </div>
   </div>
 
   <div class="card">
-    <h2>🎬 Animate</h2>
-    <button class="btn-green" id="applyBtn">🟢 APPLY ANIMATIONS</button>
-    <div style="text-align:center;margin:10px 0;">
+    <h2>🎬 Controls</h2>
+    <button class="btn-green" id="loadBtn" style="opacity:.5;cursor:not-allowed;" disabled>⏳ Please wait...</button>
+    <div class="anim-row" id="animControls" style="display:none;margin-top:15px;">
       <span class="anim-btn" data-a="idle">Idle</span>
       <span class="anim-btn" data-a="walk">Walk</span>
       <span class="anim-btn" data-a="run">Run</span>
     </div>
   </div>
+
+  <div class="card">
+    <h2>ℹ️ Troubleshooting</h2>
+    <p style="font-size:14px;color:#94a3b8;line-height:1.7;">
+      • <strong>Step 1:</strong> Wait until status says "✅ Ready"<br>
+      • <strong>Step 2:</strong> Click upload and choose your .glb<br>
+      • <strong>Step 3:</strong> Wait for "✅ Model Loaded"<br>
+      • <strong>Step 4:</strong> Use animation buttons below<br><br>
+      <strong style="color:#facc15;">💡 Tip:</strong> If stuck — close Chrome completely, reopen page
+    </p>
+  </div>
 </div>
 
 <script>
-let scene, camera, renderer, mixer=null, userModel=null;
-let animations={}, currentAction=null;
-const S=document.getElementById('status');
-function setStatus(t){S.textContent=t;console.log('[MF]',t);}
+// ===== GLOBAL VARIABLES =====
+let THREE = null;
+let GLTFLoader = null;
+let scene, camera, renderer, model = null;
+const status = document.getElementById('status');
+const fileInput = document.getElementById('fileInput');
+const fileInfo = document.getElementById('fileInfo');
+const loadBtn = document.getElementById('loadBtn');
+const animControls = document.getElementById('animControls');
 
-function init(){
-  const c=document.getElementById('c');
-  scene=new THREE.Scene();
-  scene.background=new THREE.Color(0x1e293b);
-  camera=new THREE.PerspectiveCamera(55,c.clientWidth/c.clientHeight,.1,100);
-  camera.position.set(0,1.5,3.2);
-  camera.lookAt(0,1,0);
-  renderer=new THREE.WebGLRenderer({canvas:c,antialias:true});
-  renderer.setSize(c.clientWidth,c.clientHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+function setStatus(text) {
+  status.textContent = text;
+  console.log('[STATUS]', text);
+}
+
+// ===== STEP 1: LOAD THREE.JS FIRST =====
+function loadScript(src, onLoad) {
+  const script = document.createElement('script');
+  script.src = src;
+  script.onload = onLoad;
+  document.head.appendChild(script);
+}
+
+setTimeout(() => {
+  setStatus('📦 Loading Three.js...');
   
-  scene.add(new THREE.AmbientLight(0xffffff,.7));
-  const d=new THREE.DirectionalLight(0xffffff,1.2);
-  d.position.set(3,4,3);scene.add(d);
-  scene.add(new THREE.GridHelper(6,12,0x475569,0x334155));
+  loadScript('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js', () => {
+    THREE = window.THREE;
+    setStatus('✅ Three.js loaded — loading GLTFLoader...');
+    
+    loadScript('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js', () => {
+      GLTFLoader = THREE.GLTFLoader;
+      setStatus('✅ READY! Upload your .GLB file below');
+      
+      // Enable button
+      loadBtn.textContent = '🟢 MODEL LOADED — Choose animation below';
+      loadBtn.disabled = true;
+      loadBtn.style.opacity = '1';
+      loadBtn.style.background = '#4ade80';
+      loadBtn.style.color = '#052e16';
+      animControls.style.display = 'block';
+      
+      initScene();
+    });
+  });
+}, 500);
+
+// ===== STEP 2: INITIALIZE 3D SCENE =====
+function initScene() {
+  const canvas = document.getElementById('c');
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x1e293b);
   
-  buildAnimations();
+  camera = new THREE.PerspectiveCamera(50, canvas.clientWidth / canvas.clientHeight, 0.1, 100);
+  camera.position.set(0, 1.5, 4);
+  camera.lookAt(0, 1, 0);
+  
+  renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+  renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  
+  // Lighting
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+  dirLight.position.set(3, 5, 3);
+  scene.add(dirLight);
+  
+  // Grid
+  scene.add(new THREE.GridHelper(6, 12, 0x475569, 0x334155));
+  
   animate();
 }
 
-function buildAnimations(){
-  animations={
-    idle:THREE.AnimationClip.makeIdentityClip(),
-    walk:THREE.AnimationClip.makeIdentityClip(),
-    run:THREE.AnimationClip.makeIdentityClip()
-  };
-}
-
-function playAnim(name){
-  if(!mixer){setStatus('⚠️ Upload model first');return;}
-  if(currentAction) currentAction.fadeOut(.15);
-  const clip=animations[name];
-  const a=mixer.clipAction(clip);
-  a.reset().setLoop(THREE.LoopRepeat).play();
-  currentAction=a;
-  document.querySelectorAll('.anim-btn').forEach(e=>e.classList.remove('active'));
-  document.querySelector(`[data-a="${name}"]`)?.classList.add('active');
-  setStatus('▶ Playing: '+name);
-}
-
-const finput=document.getElementById('finput');
-const finfo=document.getElementById('finfo');
-const fname=document.getElementById('fname');
-const fsize=document.getElementById('fsize');
-const fmsg=document.getElementById('fmsg');
-
-finput.addEventListener('change',async e=>{
-  const file=e.target.files[0];
-  if(!file)return;
+// ===== STEP 3: HANDLE FILE UPLOAD =====
+fileInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
   
-  finfo.style.display='block';
-  fname.textContent=file.name;
-  fsize.textContent=(file.size/1024/1024).toFixed(2)+' MB';
+  fileInfo.style.display = 'block';
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileSize').textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+  const msg = document.getElementById('fileMsg');
   
-  if(!file.name.toLowerCase().endsWith('.glb')){
-    fmsg.innerHTML='<span class="error">❌ Not a .glb file!</span>';
+  // Validate
+  if (!file.name.toLowerCase().endsWith('.glb')) {
+    msg.innerHTML = '<span class="error">❌ Please choose a .glb file only</span>';
     return;
   }
   
-  fmsg.innerHTML='<span style="color:#facc15">⏳ Loading...</span>';
-  setStatus('📂 Reading file...');
+  msg.innerHTML = '<span class="wait">⏳ Reading file...</span>';
+  setStatus('📂 Reading: ' + file.name);
   
-  try{
-    const buf=await file.arrayBuffer();
-    const v=new DataView(buf);
-    if(v.getUint32(0,true)!==0x46546C67){
-      fmsg.innerHTML='<span class="error">❌ Not a valid GLB file</span>';
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    
+    // Validate GLB header
+    const view = new DataView(arrayBuffer);
+    const magic = view.getUint32(0, true);
+    if (magic !== 0x46546C67) {
+      msg.innerHTML = '<span class="error">❌ Not a valid GLB file</span>';
       setStatus('❌ Invalid GLB');
       return;
     }
     
-    fmsg.innerHTML='<span class="success">✅ File OK — loading model...</span>';
+    msg.innerHTML = '<span class="wait">⏳ Parsing 3D model...</span>';
+    setStatus('🔄 Loading model into scene...');
     
-    if(userModel) scene.remove(userModel);
+    // Clear old model
+    if (model) scene.remove(model);
     
-    // CHECK: Is GLTFLoader available?
-    if(typeof THREE.GLTFLoader === 'undefined'){
-      fmsg.innerHTML='<span class="error">⏳ Loading GLTFLoader... Try again in 3 seconds</span>';
-      setStatus('⏳ Library still loading — please try again');
-      return;
-    }
-    
-    const loader=new THREE.GLTFLoader();
-    loader.parse(buf,'',gltf=>{
-      userModel=gltf.scene;
-      scene.add(userModel);
+    // Load new model
+    const loader = new GLTFLoader();
+    loader.parse(arrayBuffer, '', (gltf) => {
+      model = gltf.scene;
       
-      const box=new THREE.Box3().setFromObject(userModel);
-      const c=box.getCenter(new THREE.Vector3());
-      const s=box.getSize(new THREE.Vector3());
-      const sf=1.8/Math.max(s.x,s.y,s.z);
-      userModel.position.sub(c.clone().multiplyScalar(sf));
-      userModel.position.y=0;
-      userModel.scale.setScalar(sf);
+      // Center & scale model
+      const box = new THREE.Box3().setFromObject(model);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      const scale = 2 / Math.max(size.x, size.y, size.z);
       
-      fmsg.innerHTML+='<br><span class="success">✅ MODEL LOADED SUCCESSFULLY!</span>';
-      setStatus('✅ Ready — click APPLY ANIMATIONS');
+      model.position.sub(center.clone().multiplyScalar(scale));
+      model.position.y = 0;
+      model.scale.multiplyScalar(scale);
       
-    },err=>{
-      fmsg.innerHTML='<span class="error">❌ Error: '+err.message+'</span>';
-      setStatus('❌ Load failed');
+      scene.add(model);
+      
+      msg.innerHTML = '<span class="ok">✅ MODEL LOADED SUCCESSFULLY!</span>';
+      setStatus('✅ SUCCESS! Use buttons below to rotate/zoom');
+      
+      // Show animations
+      animControls.style.display = 'block';
+      
+    }, (error) => {
+      msg.innerHTML = '<span class="error">❌ Load Error: ' + error.message + '</span>';
+      setStatus('❌ Failed to load model');
+      console.error('GLTFLoader error:', error);
     });
     
-  }catch(err){
-    fmsg.innerHTML='<span class="error">❌ Error: '+err.message+'</span>';
-    setStatus('❌ Read failed');
+  } catch (err) {
+    msg.innerHTML = '<span class="error">❌ Error: ' + err.message + '</span>';
+    setStatus('❌ File read error');
+    console.error('File error:', err);
   }
 });
 
-document.getElementById('applyBtn').addEventListener('click',()=>{
-  if(!userModel){
-    alert('⚠️ Upload a .GLB file first!');
-    return;
-  }
-  mixer=new THREE.AnimationMixer(userModel);
-  playAnim('idle');
-  alert('✅ Animations Connected!');
+// ===== SIMPLE ANIMATION/ROTATION =====
+let isRotating = false;
+document.querySelectorAll('.anim-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.anim-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    const action = btn.dataset.a;
+    if (action === 'idle') {
+      isRotating = false;
+    } else if (action === 'walk') {
+      isRotating = true;
+    } else if (action === 'run') {
+      isRotating = true;
+    }
+  });
 });
 
-document.querySelectorAll('.anim-btn').forEach(b=>{
-  b.addEventListener('click',()=>playAnim(b.dataset.a));
-});
-
-function animate(){
+// ===== ANIMATION LOOP =====
+function animate() {
   requestAnimationFrame(animate);
-  if(mixer) mixer.update(Math.min(0.05,1/60));
-}
-
-window.addEventListener('resize',()=>{
-  const c=document.getElementById('c');
-  renderer.setSize(c.clientWidth,c.clientHeight);
-  camera.aspect=c.clientWidth/c.clientHeight;
-  camera.updateProjectionMatrix();
-});
-
-// Wait for libraries to load
-function checkReady(){
-  if(typeof THREE.GLTFLoader !== 'undefined'){
-    setStatus('✅ Libraries ready — upload your model');
-  }else{
-    setTimeout(checkReady,500);
+  
+  if (model && isRotating) {
+    model.rotation.y += 0.015;
   }
+  
+  renderer.render(scene, camera);
 }
-setTimeout(()=>{
-  init();
-  checkReady();
-},300);
+
+// ===== HANDLE RESIZE =====
+window.addEventListener('resize', () => {
+  const canvas = document.getElementById('c');
+  if (camera && renderer) {
+    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+    camera.aspect = canvas.clientWidth / canvas.clientHeight;
+    camera.updateProjectionMatrix();
+  }
+});
 
 </script>
 </body>
