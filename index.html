@@ -3,10 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>MotionForge — Fixed Upload</title>
+<title>MotionForge — Fixed</title>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/exporters/GLTFExporter.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,sans-serif;}
 body{background:#0f172a;color:#f1f5f9;padding-bottom:30px;}
@@ -34,17 +40,17 @@ input[type="file"]{display:none;}
 </head>
 <body>
 
-<header>🔧 MotionForge — Fixed Upload Version</header>
+<header>✨ MotionForge — Skeleton & Animation Kit</header>
 
 <div id="canvas-container">
   <canvas id="c"></canvas>
-  <div class="status" id="status">✅ Ready — Click "Choose File" below</div>
+  <div class="status" id="status">✅ Ready — Upload your .GLB file</div>
 </div>
 
 <div class="container">
 
   <div class="card">
-    <h2>📂 Step 1: Upload Your .GLB</h2>
+    <h2>📂 Upload Your .GLB Model</h2>
     <label class="file-btn" for="finput">
       <strong>📄 CLICK HERE TO SELECT .GLB FILE</strong>
       <p style="font-size:13px;color:#94a3b8;margin-top:5px;">Only .glb files • Max 50MB</p>
@@ -58,8 +64,8 @@ input[type="file"]{display:none;}
   </div>
 
   <div class="card">
-    <h2>✅ Step 2: Apply & Animate</h2>
-    <button class="btn-green" id="applyBtn">🟢 1. APPLY ANIMATIONS</button>
+    <h2>🎬 Animate</h2>
+    <button class="btn-green" id="applyBtn">🟢 APPLY ANIMATIONS TO MY MODEL</button>
     <div style="text-align:center;margin:10px 0;">
       <span class="anim-btn" data-a="idle">Idle</span>
       <span class="anim-btn" data-a="walk">Walk</span>
@@ -69,24 +75,16 @@ input[type="file"]{display:none;}
   </div>
 
   <div class="card">
-    <h2>💾 Step 3: Save Your Work</h2>
-    <button class="btn-cyan" id="saveJson">📄 Save Skeleton JSON</button>
-    <button class="btn-purple" id="saveGlb">📦 Save Rigged .GLB</button>
-  </div>
-
-  <div class="card" style="background:#1e293b;border:1px solid #334155;">
-    <h2>ℹ️ Troubleshooting</h2>
-    <p style="font-size:13px;color:#94a3b8;line-height:1.6;">
-      • <strong>Only works in Chrome</strong> — not in Preview app<br>
-      • <strong>File must be .glb</strong> — not renamed from .png/.jpg<br>
-      • <strong>Model works best in T-Pose</strong> — standing straight<br>
-      • If nothing happens — check if file is not corrupted
-    </p>
+    <h2>💾 Save</h2>
+    <button class="btn-cyan" id="saveGlb">📦 Download .GLB</button>
   </div>
 
 </div>
 
-<script>
+<script type="module">
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+
 // ===== THREE.JS SCENE =====
 let scene, camera, renderer, mixer=null, userModel=null;
 let animations={}, currentAction=null;
@@ -104,10 +102,10 @@ function init(){
   renderer.setSize(c.clientWidth,c.clientHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
   
-  scene.add(new THREE.AmbientLight(0xffffff,.6));
-  const d=new THREE.DirectionalLight(0xffffff,1);
-  d.position.set(2,4,3);scene.add(d);
-  scene.add(new THREE.GridHelper(5,10,0x475569,0x334155));
+  scene.add(new THREE.AmbientLight(0xffffff,.7));
+  const d=new THREE.DirectionalLight(0xffffff,1.2);
+  d.position.set(3,4,3);scene.add(d);
+  scene.add(new THREE.GridHelper(6,12,0x475569,0x334155));
   
   buildAnimations();
   animate();
@@ -148,8 +146,8 @@ function makeClip(name,dur,bones){
     const pz=typeof b.t[2]==='function'?[0,b.t[2](0),b.t[2](1)]:[b.t[2],b.t[2],b.t[2]];
     const pv=new Float32Array([px[0],py[0],pz[0], px[1],py[1],pz[1], px[2],py[2],pz[2]]);
     tracks.push(new THREE.VectorKeyframeTrack(b.n+'.position',t,pv));
-    const r=[0,0,0],q=new THREE.Quaternion();
-    q.setFromEuler(new THREE.Euler((b.r?.[0]||0),(b.r?.[1]||0),(b.r?.[2]||0)));
+    const r=[b.r?.[0]||0,b.r?.[1]||0,b.r?.[2]||0];
+    const q=new THREE.Quaternion().setFromEuler(new THREE.Euler(r[0],r[1],r[2]));
     const qv=new Float32Array([q.x,q.y,q.z,q.w, q.x,q.y,q.z,q.w, q.x,q.y,q.z,q.w]);
     tracks.push(new THREE.QuaternionKeyframeTrack(b.n+'.quaternion',t,qv));
   });
@@ -158,7 +156,7 @@ function makeClip(name,dur,bones){
 
 function playAnim(name){
   if(!mixer){setStatus('⚠️ Upload model first');return;}
-  if(currentAction)currentAction.fadeOut(.1);
+  if(currentAction)currentAction.fadeOut(.15);
   const clip=animations[name];
   if(!clip)return;
   const a=mixer.clipAction(clip);
@@ -169,7 +167,7 @@ function playAnim(name){
   setStatus('▶ Playing: '+name);
 }
 
-// ===== FILE UPLOAD — IMPROVED =====
+// ===== FILE UPLOAD =====
 const finput=document.getElementById('finput');
 const finfo=document.getElementById('finfo');
 const fname=document.getElementById('fname');
@@ -183,41 +181,34 @@ finput.addEventListener('change',async e=>{
   finfo.style.display='block';
   fname.textContent=file.name;
   fsize.textContent=(file.size/1024/1024).toFixed(2)+' MB';
-  fmsg.innerHTML='<span style="color:#facc15">⏳ Loading file...</span>';
-  setStatus('📂 Reading file: '+file.name);
   
-  // Check extension
   if(!file.name.toLowerCase().endsWith('.glb')){
     fmsg.innerHTML='<span class="error">❌ Not a .glb file!</span>';
-    setStatus('❌ Wrong file type');
+    return;
+  }
+  if(file.size>50*1024*1024){
+    fmsg.innerHTML='<span class="error">❌ File too large (max 50MB)</span>';
     return;
   }
   
-  // Check size
-  if(file.size>50*1024*1024){
-    fmsg.innerHTML='<span class="error">❌ File too large (max 50MB)</span>';
-    setStatus('❌ File too large');
-    return;
-  }
+  fmsg.innerHTML='<span style="color:#facc15">⏳ Loading...</span>';
+  setStatus('📂 Reading: '+file.name);
   
   try{
     const buf=await file.arrayBuffer();
-    
-    // Validate GLB magic number
     const v=new DataView(buf);
     if(v.getUint32(0,true)!==0x46546C67){
-      fmsg.innerHTML='<span class="error">❌ Invalid GLB file! Magic number mismatch.</span>';
-      setStatus('❌ Not a valid GLB');
+      fmsg.innerHTML='<span class="error">❌ Not a valid GLB file</span>';
+      setStatus('❌ Invalid GLB');
       return;
     }
     
-    fmsg.innerHTML='<span class="success">✅ File valid — loading model...</span>';
-    setStatus('🔄 Parsing 3D data...');
+    fmsg.innerHTML='<span class="success">✅ File OK — loading model...</span>';
+    setStatus('🔄 Loading 3D model...');
     
-    // Remove old model
-    if(userModel){scene.remove(userModel);userModel=null;}
+    if(userModel) scene.remove(userModel);
     
-    const loader=new THREE.GLTFLoader();
+    const loader=new GLTFLoader();
     loader.parse(buf,'',gltf=>{
       userModel=gltf.scene;
       scene.add(userModel);
@@ -231,60 +222,54 @@ finput.addEventListener('change',async e=>{
       userModel.position.y=0;
       userModel.scale.setScalar(sf);
       
-      mixer=new THREE.AnimationMixer(userModel);
-      fmsg.innerHTML+='<br><span class="success">✅ Model loaded! Click APPLY ANIMATIONS now</span>';
-      setStatus('✅ Model ready — click Step 2');
+      fmsg.innerHTML+='<br><span class="success">✅ Model Loaded! Click APPLY ANIMATIONS</span>';
+      setStatus('✅ Ready — click Apply Animations');
       
     },err=>{
-      fmsg.innerHTML='<span class="error">❌ Load Error: '+err.message+'</span>';
-      setStatus('❌ Error: '+err.message);
-      console.error(err);
+      fmsg.innerHTML='<span class="error">❌ Error: '+err.message+'</span>';
+      setStatus('❌ Load failed: '+err.message);
     });
     
   }catch(err){
-    fmsg.innerHTML='<span class="error">❌ File Read Error: '+err.message+'</span>';
-    setStatus('❌ Read Error: '+err.message);
-    console.error(err);
+    fmsg.innerHTML='<span class="error">❌ Error: '+err.message+'</span>';
+    setStatus('❌ Read failed');
   }
 });
 
 // ===== BUTTONS =====
 document.getElementById('applyBtn').addEventListener('click',()=>{
   if(!userModel){
-    alert('⚠️ Upload a .GLB file first! Click the big button above.');
+    alert('⚠️ Upload a .GLB file first!');
     return;
   }
   mixer=new THREE.AnimationMixer(userModel);
   playAnim('idle');
-  alert('✅ Animations Applied!\n\nNow click: Idle / Walk / Run / Jump');
+  alert('✅ Animations Connected!\n\nNow click Walk/Run/Jump');
 });
 
 document.querySelectorAll('.anim-btn').forEach(b=>{
   b.addEventListener('click',()=>playAnim(b.dataset.a));
 });
 
-document.getElementById('saveGlb').addEventListener('click',()=>{
+document.getElementById('saveGlb').addEventListener('click',async()=>{
   if(!userModel){alert('Upload model first!');return;}
-  setStatus('📦 Exporting...');
-  const exporter=new THREE.GLTFExporter();
+  setStatus('📦 Preparing download...');
+  const { GLTFExporter } = await import('three/addons/exporters/GLTFExporter.js');
+  const exporter=new GLTFExporter();
   exporter.parse(userModel,result=>{
     const blob=new Blob([result],{type:'application/octet-stream'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
-    a.href=url;a.download='rigged_model.glb';a.click();
+    a.href=url;a.download='model.glb';a.click();
     URL.revokeObjectURL(url);
-    setStatus('✅ Saved! Check your Downloads folder');
-  },err=>{setStatus('❌ Export Error: '+err);console.error(err);});
-});
-
-document.getElementById('saveJson').addEventListener('click',()=>{
-  alert('Skeleton JSON — works after Auto-Rig completes! Upload a model first.');
+    setStatus('✅ Download started! Check your Downloads');
+  },err=>{setStatus('❌ Export failed');console.error(err);});
 });
 
 // ===== ANIMATE LOOP =====
 function animate(){
   requestAnimationFrame(animate);
-  if(mixer)mixer.update(Math.min(0.05,1/60));
+  if(mixer) mixer.update(Math.min(0.05,1/60));
 }
 
 window.addEventListener('resize',()=>{
@@ -296,5 +281,6 @@ window.addEventListener('resize',()=>{
 
 init();
 </script>
+
 </body>
 </html>
